@@ -1,0 +1,41 @@
+## Session - Feb 23, 2026
+
+**Completed:**
+- Project scaffolded from PRD
+- Full D1 schema created (db/schema.sql)
+- All pages built (home, directory, category, state, city, detail, map, about, privacy, terms)
+- Mapbox map with clustering, filtering, geolocation, sidebar
+- Chart.js stats section on home page
+- CSV import script + geocoding script
+- God Bless America design theme
+
+**Files Changed:**
+- db/schema.sql — Full D1 schema with 5 tables, indexes, seed data (12 categories, 7 badges)
+- scripts/import-csv.js — Google Sheets CSV to D1 SQL import (validates, maps categories, generates slugs, escapes SQL, assigns badges)
+- scripts/geocode.js — Batch Mapbox geocoding with rate limiting, outputs UPDATE SQL
+- CLAUDE.md — Project context file
+- progress.txt — This file
+
+**Decisions:**
+- Using lightweight built-in CSV parser instead of papaparse dependency (no npm needed for scripts)
+- Category mapping uses flexible pattern matching (partial, case-insensitive)
+- Geocode script reads CSV directly instead of querying D1 (avoids wrangler dependency)
+- All imported businesses automatically get 'original-thread' badge via SQL subquery
+
+**Next Steps:**
+- [ ] Brian creates Google Spreadsheet with business data
+- [ ] Export CSV and run import script
+- [ ] Create D1 database: `npx wrangler d1 create patriot_directory_db`
+- [ ] Run schema: `npx wrangler d1 execute patriot_directory_db --file=db/schema.sql`
+- [ ] Run import: `npx wrangler d1 execute patriot_directory_db --file=data/import.sql`
+- [ ] Set PUBLIC_MAPBOX_TOKEN in .env
+- [ ] Run geocoding: `MAPBOX_TOKEN=xxx node scripts/geocode.js data/businesses.csv`
+- [ ] Run geocode SQL: `npx wrangler d1 execute patriot_directory_db --file=data/geocode-update.sql`
+- [ ] Test locally with `npx wrangler pages dev`
+- [ ] Choose domain
+
+**Gotchas:**
+- D1 only accessible at runtime on Cloudflare Pages (can't query during astro build)
+- Mapbox free tier is 50k map loads/month — sufficient for launch
+- Category mapping must be flexible — spreadsheet category names may not match slugs exactly
+- State field in CSV may be full name or 2-char abbreviation — import script handles both

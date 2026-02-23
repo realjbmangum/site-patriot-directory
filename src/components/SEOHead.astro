@@ -1,0 +1,50 @@
+---
+import siteConfig from '../data/site-config.json';
+
+interface Props {
+  title: string;
+  description: string;
+  ogImage?: string;
+  canonicalUrl?: string;
+  type?: string;
+  jsonLd?: Record<string, unknown>;
+}
+
+const {
+  title,
+  description,
+  ogImage = siteConfig.ogImage,
+  canonicalUrl,
+  type = 'website',
+  jsonLd,
+} = Astro.props;
+
+const siteUrl = import.meta.env.PUBLIC_SITE_URL || siteConfig.siteUrl || 'https://example.com';
+const fullTitle = title.includes(siteConfig.siteName)
+  ? title
+  : `${title} | ${siteConfig.siteName}`;
+const canonical = canonicalUrl || new URL(Astro.url.pathname, siteUrl).href;
+const ogImageUrl = ogImage?.startsWith('http') ? ogImage : `${siteUrl}${ogImage}`;
+---
+
+<title>{fullTitle}</title>
+<meta name="description" content={description} />
+<link rel="canonical" href={canonical} />
+
+<!-- Open Graph -->
+<meta property="og:type" content={type} />
+<meta property="og:title" content={fullTitle} />
+<meta property="og:description" content={description} />
+<meta property="og:url" content={canonical} />
+{ogImageUrl && <meta property="og:image" content={ogImageUrl} />}
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={fullTitle} />
+<meta name="twitter:description" content={description} />
+{ogImageUrl && <meta name="twitter:image" content={ogImageUrl} />}
+
+<!-- JSON-LD Structured Data -->
+{jsonLd && (
+  <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+)}

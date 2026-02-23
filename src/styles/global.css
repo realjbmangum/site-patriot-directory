@@ -1,0 +1,82 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-parchment text-[#1a1a2e] font-sans;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display;
+  }
+}
+
+@layer components {
+  .star-divider {
+    @apply flex items-center gap-4 my-8;
+  }
+
+  .star-divider::before,
+  .star-divider::after {
+    content: '';
+    @apply flex-1 h-px bg-navy/20;
+  }
+
+  .star-divider::before {
+    content: '';
+  }
+
+  .star-divider::after {
+    content: '';
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center px-6 py-3 bg-navy text-white font-semibold rounded-lg
+           hover:bg-navy/90 transition-colors duration-200;
+  }
+
+  .btn-cta {
+    @apply inline-flex items-center justify-center px-6 py-3 bg-crimson text-white font-semibold rounded-lg
+           hover:bg-crimson/90 transition-colors duration-200;
+  }
+
+  .btn-outline {
+    @apply inline-flex items-center justify-center px-6 py-3 border-2 border-navy text-navy font-semibold rounded-lg
+           hover:bg-navy hover:text-white transition-colors duration-200;
+  }
+
+  .card {
+    @apply bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200
+           border border-gray-100;
+  }
+
+  .card-hover-accent {
+    @apply border-t-2 border-t-transparent hover:border-t-navy;
+  }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-parchment;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-navy/30 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-navy/50;
+}

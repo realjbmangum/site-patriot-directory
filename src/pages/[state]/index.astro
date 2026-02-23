@@ -1,0 +1,139 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import BusinessGrid from '../../components/BusinessGrid.astro';
+import AdSlot from '../../components/AdSlot.astro';
+import { getBusinesses, getCities, getBusinessBadges } from '../../lib/db';
+import { stateSlugToAbbr, stateSlugToName, slugify } from '../../lib/utils';
+import type { Badge } from '../../lib/db';
+
+const db = Astro.locals.runtime.env.DB;
+const { state: stateSlug } = Astro.params;
+
+const stateAbbr = stateSlugToAbbr(stateSlug!);
+const stateName = stateSlugToName(stateSlug!);
+
+// Validate: if slug didn't resolve to a real state name, 404
+if (stateName === stateSlug) {
+  return new Response(null, { status: 404, statusText: 'Not Found' });
+}
+
+const businesses = await getBusinesses(db, { state: stateAbbr });
+const cities = await getCities(db, stateAbbr);
+
+if (businesses.length === 0) {
+  return new Response(null, { status: 404, statusText: 'Not Found' });
+}
+
+// Fetch badges for businesses
+const badgesByBusiness: Record<number, Badge[]> = {};
+for (const biz of businesses) {
+  badgesByBusiness[biz.id] = await getBusinessBadges(db, biz.id);
+}
+---
+
+<BaseLayout
+  title={`Patriot Businesses in ${stateName} — Patriot Directory`}
+  description={`Find ${businesses.length} patriot-owned businesses in ${stateName}. Restaurants, services, farms, and more.`}
+>
+  <!-- Hero -->
+  <section class="bg-navy text-white py-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <nav class="text-sm text-white/50 mb-4">
+        <a href="/" class="hover:text-gold transition-colors">Home</a>
+        <span class="mx-2">/</span>
+        <span class="text-white/80">{stateName}</span>
+      </nav>
+      <h1 class="font-display text-3xl md:text-4xl font-bold">{stateName} Patriot Businesses</h1>
+      <p class="text-white/70 mt-2">
+        {businesses.length} {businesses.length === 1 ? 'business' : 'businesses'} across {cities.length} {cities.length === 1 ? 'city' : 'cities'}
+      </p>
+    </div>
+  </section>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Cities in this state -->
+    {cities.length > 1 && (
+      <section class="mb-12">
+        <h2 class="font-display text-2xl font-bold text-navy mb-6">Cities in {stateName}</h2>
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+          {cities.map((c) => (
+            <a
+              href={`/${stateSlug}/${slugify(c.city)}`}
+              class="flex items-center justify-between px-4 py-3 bg-white rounded-lg border border-gray-100 hover:border-navy/30 hover:shadow-sm transition-all duration-200 group"
+            >
+              <span class="text-sm font-medium text-navy group-hover:text-crimson transition-colors">
+                {c.city}
+              </span>
+              <span class="text-xs text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full">
+                {c.count}
+              </span>
+            </a>
+          ))}
+        </div>
+      </section>
+    )}
+
+    <!-- Mini Mapbox map -->
+    <section class="mb-12">
+      <div id="state-map" class="w-full h-64 md:h-80 rounded-lg border border-gray-200 bg-gray-100"></div>
+    </section>
+
+    <!-- Business Grid -->
+    <BusinessGrid
+      businesses={businesses}
+      badgesByBusiness={badgesByBusiness}
+      title={`All Businesses in ${stateName}`}
+    />
+
+    <!-- Ad Slot -->
+    <div class="mt-8">
+      <AdSlot slot="state-bottom" />
+    </div>
+
+    <!-- Back link -->
+    <div class="mt-8 text-center">
+      <a href="/directory" class="text-navy hover:text-crimson transition-colors text-sm font-medium">
+        &larr; Back to all businesses
+      </a>
+    </div>
+  </div>
+
+  <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css" />
+  <script is:inline src="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js"></script>
+  <script is:inline define:vars={{ businesses: businesses.filter(b => b.latitude && b.longitude).map(b => ({ name: b.name, slug: b.slug, lat: b.latitude, lng: b.longitude, city: b.city, state: b.state })) }}>
+    document.addEventListener('DOMContentLoaded', function() {
+      const token = document.querySelector('meta[name="mapbox-token"]')?.content;
+      const container = document.getElementById('state-map');
+      if (!token || !container || !businesses.length) return;
+
+      mapboxgl.accessToken = token;
+      const map = new mapboxgl.Map({
+        container: 'state-map',
+        style: 'mapbox://styles/mapbox/light-v11',
+        center: [businesses[0].lng, businesses[0].lat],
+        zoom: 6,
+      });
+
+      map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+
+      const bounds = new mapboxgl.LngLatBounds();
+      businesses.forEach(function(biz) {
+        bounds.extend([biz.lng, biz.lat]);
+        new mapboxgl.Marker({ color: '#c41e3a' })
+          .setLngLat([biz.lng, biz.lat])
+          .setPopup(new mapboxgl.Popup({ offset: 25 }).setHTML(
+            '<div style="font-family:Inter,system-ui,sans-serif">' +
+            '<strong style="color:#1e2d4f">' + biz.name + '</strong>' +
+            '<p style="margin:4px 0 0;font-size:12px;color:#666">' + biz.city + ', ' + biz.state + '</p>' +
+            '<a href="/business/' + biz.slug + '" style="color:#c41e3a;font-size:12px;font-weight:600;text-decoration:none">View Details &rarr;</a>' +
+            '</div>'
+          ))
+          .addTo(map);
+      });
+
+      if (businesses.length > 1) {
+        map.fitBounds(bounds, { padding: 50 });
+      }
+    });
+  </script>
+</BaseLayout>

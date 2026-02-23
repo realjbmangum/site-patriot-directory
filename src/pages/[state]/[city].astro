@@ -1,0 +1,105 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import BusinessGrid from '../../components/BusinessGrid.astro';
+import AdSlot from '../../components/AdSlot.astro';
+import { getBusinesses, getBusinessBadges } from '../../lib/db';
+import { stateSlugToAbbr, stateSlugToName, citySlugToName } from '../../lib/utils';
+import type { Badge } from '../../lib/db';
+
+const db = Astro.locals.runtime.env.DB;
+const { state: stateSlug, city: citySlug } = Astro.params;
+
+const stateAbbr = stateSlugToAbbr(stateSlug!);
+const stateName = stateSlugToName(stateSlug!);
+const cityName = citySlugToName(citySlug!);
+
+// Validate state resolved
+if (stateName === stateSlug) {
+  return new Response(null, { status: 404, statusText: 'Not Found' });
+}
+
+const businesses = await getBusinesses(db, { state: stateAbbr, city: cityName });
+
+if (businesses.length === 0) {
+  return new Response(null, { status: 404, statusText: 'Not Found' });
+}
+
+// Fetch badges
+const badgesByBusiness: Record<number, Badge[]> = {};
+for (const biz of businesses) {
+  badgesByBusiness[biz.id] = await getBusinessBadges(db, biz.id);
+}
+
+// Top categories for SEO description
+const categoryNames = [...new Set(businesses.map(b => b.category_name).filter(Boolean))];
+const topCategories = categoryNames.slice(0, 3).join(', ');
+
+// LocalBusiness aggregate structured data
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'ItemList',
+  name: `Patriot Businesses in ${cityName}, ${stateAbbr}`,
+  numberOfItems: businesses.length,
+  itemListElement: businesses.map((biz, i) => ({
+    '@type': 'ListItem',
+    position: i + 1,
+    item: {
+      '@type': 'LocalBusiness',
+      name: biz.name,
+      address: {
+        '@type': 'PostalAddress',
+        addressLocality: biz.city,
+        addressRegion: biz.state,
+      },
+      ...(biz.website && { url: biz.website }),
+    },
+  })),
+};
+---
+
+<BaseLayout
+  title={`Patriot Businesses in ${cityName}, ${stateAbbr} — Patriot Directory`}
+  description={`Support ${businesses.length} American businesses in ${cityName}, ${stateName}. Browse local patriot-owned ${topCategories || 'businesses'}.`}
+  jsonLd={jsonLd}
+>
+  <!-- Hero -->
+  <section class="bg-navy text-white py-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <nav class="text-sm text-white/50 mb-4">
+        <a href="/" class="hover:text-gold transition-colors">Home</a>
+        <span class="mx-2">/</span>
+        <a href={`/${stateSlug}`} class="hover:text-gold transition-colors">{stateName}</a>
+        <span class="mx-2">/</span>
+        <span class="text-white/80">{cityName}</span>
+      </nav>
+      <h1 class="font-display text-3xl md:text-4xl font-bold">
+        Patriot Businesses in {cityName}, {stateAbbr}
+      </h1>
+      <p class="text-white/70 mt-2">
+        {businesses.length} {businesses.length === 1 ? 'business' : 'businesses'}
+      </p>
+    </div>
+  </section>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Business Grid -->
+    <BusinessGrid
+      businesses={businesses}
+      badgesByBusiness={badgesByBusiness}
+    />
+
+    <!-- Ad Slot -->
+    {businesses.length > 0 && (
+      <div class="mt-8">
+        <AdSlot slot="city-bottom" />
+      </div>
+    )}
+
+    <!-- Back to state -->
+    <div class="mt-8 text-center">
+      <a href={`/${stateSlug}`} class="text-navy hover:text-crimson transition-colors text-sm font-medium">
+        &larr; More businesses in {stateName}
+      </a>
+    </div>
+  </div>
+</BaseLayout>

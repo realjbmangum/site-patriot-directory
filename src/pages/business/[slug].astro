@@ -1,0 +1,244 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import BadgePill from '../../components/BadgePill.astro';
+import BusinessCard from '../../components/BusinessCard.astro';
+import BusinessMap from '../../components/BusinessMap.astro';
+import AdSlot from '../../components/AdSlot.astro';
+import { getBusinessBySlug, getBusinessBadges, getBusinesses, getCategories } from '../../lib/db';
+import { stateAbbrToSlug, stateAbbrToName, slugify } from '../../lib/utils';
+import type { Badge } from '../../lib/db';
+
+const { slug } = Astro.params;
+const db = Astro.locals.runtime.env.DB;
+
+const business = await getBusinessBySlug(db, slug!);
+
+if (!business) {
+  return Astro.redirect('/404');
+}
+
+const badges: Badge[] = await getBusinessBadges(db, business.id);
+
+// Get related businesses from same category (exclude current)
+const relatedAll = await getBusinesses(db, { category: business.category_slug, limit: 4 });
+const related = relatedAll.filter((b) => b.id !== business.id).slice(0, 3);
+
+// Get badges for related businesses
+const relatedBadges: Map<number, Badge[]> = new Map();
+for (const b of related) {
+  const bBadges = await getBusinessBadges(db, b.id);
+  relatedBadges.set(b.id, bBadges);
+}
+
+const stateSlug = stateAbbrToSlug(business.state);
+const stateName = stateAbbrToName(business.state);
+const citySlug = slugify(business.city);
+
+// Build JSON-LD
+const jsonLd: Record<string, unknown> = {
+  '@context': 'https://schema.org',
+  '@type': 'LocalBusiness',
+  name: business.name,
+  description: business.short_description || business.story || '',
+  address: {
+    '@type': 'PostalAddress',
+    addressLocality: business.city,
+    addressRegion: business.state,
+    ...(business.street_address && { streetAddress: business.street_address }),
+    ...(business.postal_code && { postalCode: business.postal_code }),
+  },
+  ...(business.website && { url: business.website }),
+  ...(business.phone && { telephone: business.phone }),
+  ...(business.latitude && business.longitude && {
+    geo: {
+      '@type': 'GeoCoordinates',
+      latitude: business.latitude,
+      longitude: business.longitude,
+    },
+  }),
+  ...(business.photo_url && { image: business.photo_url }),
+};
+
+const pageTitle = `${business.name} — ${business.city}, ${business.state}`;
+const pageDescription = business.short_description
+  ? `${business.short_description} ${business.category_name} in ${business.city}, ${business.state}. Learn their story and show your support.`
+  : `${business.category_name} in ${business.city}, ${business.state}. Learn their story and show your support.`;
+---
+
+<BaseLayout
+  title={pageTitle}
+  description={pageDescription}
+  jsonLd={jsonLd}
+>
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <!-- Breadcrumb -->
+    <nav class="text-sm text-gray-500 mb-6" aria-label="Breadcrumb">
+      <ol class="flex items-center gap-1.5 flex-wrap">
+        <li><a href="/" class="hover:text-navy transition-colors">Home</a></li>
+        <li class="text-gray-300">/</li>
+        <li>
+          <a href={`/category/${business.category_slug}`} class="hover:text-navy transition-colors">
+            {business.category_name}
+          </a>
+        </li>
+        <li class="text-gray-300">/</li>
+        <li class="text-navy font-medium">{business.name}</li>
+      </ol>
+    </nav>
+
+    <!-- Business Header -->
+    <header class="mb-8">
+      <h1 class="font-display text-3xl sm:text-4xl font-bold text-navy mb-3 leading-tight">
+        {business.name}
+      </h1>
+
+      <div class="flex flex-wrap items-center gap-3 mb-4">
+        <!-- Category badge -->
+        <a
+          href={`/category/${business.category_slug}`}
+          class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium bg-navy/10 text-navy hover:bg-navy/20 transition-colors"
+        >
+          {business.category_name}
+        </a>
+
+        <!-- Location -->
+        <a
+          href={`/${stateSlug}/${citySlug}`}
+          class="text-sm text-gray-600 hover:text-navy transition-colors"
+        >
+          {business.city}, {stateName}
+        </a>
+      </div>
+
+      <!-- Badges -->
+      {badges.length > 0 && (
+        <div class="flex flex-wrap gap-2">
+          {badges.map((badge) => (
+            <BadgePill badge={badge} />
+          ))}
+        </div>
+      )}
+
+      <!-- Twitter/X link -->
+      {business.twitter_handle && (
+        <a
+          href={`https://x.com/${business.twitter_handle}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-flex items-center gap-2 mt-4 px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors text-sm font-medium"
+        >
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+          </svg>
+          @{business.twitter_handle}
+        </a>
+      )}
+    </header>
+
+    <!-- Photo -->
+    {business.photo_url ? (
+      <div class="mb-8 rounded-lg overflow-hidden shadow-md">
+        <img
+          src={business.photo_url}
+          alt={business.name}
+          class="w-full h-64 sm:h-80 object-cover"
+          loading="lazy"
+        />
+      </div>
+    ) : (
+      <div class="mb-8 rounded-lg overflow-hidden shadow-md h-48 sm:h-56 bg-gradient-to-br from-navy via-navy/80 to-crimson flex items-center justify-center">
+        <span class="text-gold text-6xl">&#9733;</span>
+      </div>
+    )}
+
+    <!-- Story Section -->
+    <section class="mb-8">
+      {business.story ? (
+        <div class="prose prose-lg max-w-none prose-headings:font-display prose-headings:text-navy prose-a:text-crimson">
+          <p class="text-gray-700 leading-relaxed whitespace-pre-line">{business.story}</p>
+        </div>
+      ) : business.short_description ? (
+        <blockquote class="border-l-4 border-crimson pl-6 py-3 italic text-gray-700 text-lg leading-relaxed bg-parchment/50 rounded-r-lg">
+          {business.short_description}
+        </blockquote>
+      ) : null}
+    </section>
+
+    <!-- Contact Info -->
+    <section class="mb-8 p-6 bg-white rounded-lg border border-gray-200 shadow-sm">
+      <h2 class="font-display text-xl font-semibold text-navy mb-4">Contact</h2>
+      <div class="flex flex-col gap-3">
+        {business.website && (
+          <a
+            href={business.website}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center gap-2 text-crimson hover:text-crimson/80 transition-colors font-medium"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+            </svg>
+            Visit Website
+          </a>
+        )}
+        {business.twitter_handle && (
+          <a
+            href={`https://x.com/${business.twitter_handle}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center gap-2 text-gray-700 hover:text-navy transition-colors font-medium"
+          >
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+            </svg>
+            @{business.twitter_handle} on X
+          </a>
+        )}
+        {business.phone && (
+          <a
+            href={`tel:${business.phone}`}
+            class="inline-flex items-center gap-2 text-gray-700 hover:text-navy transition-colors font-medium"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+            </svg>
+            {business.phone}
+          </a>
+        )}
+      </div>
+    </section>
+
+    <!-- Ad Slot -->
+    <AdSlot slot="business-after-story" />
+
+    <!-- Mini Map -->
+    {business.latitude && business.longitude && (
+      <section class="mb-8">
+        <h2 class="font-display text-xl font-semibold text-navy mb-4">Location</h2>
+        <BusinessMap lat={business.latitude} lng={business.longitude} businessName={business.name} />
+      </section>
+    )}
+
+    <!-- Related Businesses -->
+    {related.length > 0 && (
+      <section class="mb-8">
+        <div class="star-divider">
+          <span class="text-gold text-lg">&#9733;</span>
+        </div>
+        <h2 class="font-display text-2xl font-semibold text-navy mb-6">
+          More {business.category_name}
+        </h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {related.map((b) => (
+            <BusinessCard business={b} badges={relatedBadges.get(b.id) || []} />
+          ))}
+        </div>
+      </section>
+    )}
+
+    <!-- Ad Slot -->
+    <AdSlot slot="business-end" />
+
+  </div>
+</BaseLayout>

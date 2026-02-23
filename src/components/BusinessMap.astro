@@ -1,0 +1,61 @@
+---
+interface Props {
+  lat: number;
+  lng: number;
+  businessName: string;
+}
+
+const { lat, lng, businessName } = Astro.props;
+---
+
+<div class="business-map-container rounded-lg overflow-hidden border border-gray-200 shadow-sm">
+  <div
+    id="business-mini-map"
+    class="w-full"
+    style="height: 250px;"
+    data-lat={lat}
+    data-lng={lng}
+    data-name={businessName}
+  ></div>
+</div>
+
+<link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css" />
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js" is:inline></script>
+
+<script is:inline>
+(function() {
+  const container = document.getElementById('business-mini-map');
+  if (!container) return;
+
+  const lat = parseFloat(container.dataset.lat);
+  const lng = parseFloat(container.dataset.lng);
+  const name = container.dataset.name;
+  const token = document.querySelector('meta[name="mapbox-token"]')?.content;
+
+  if (!token || isNaN(lat) || isNaN(lng)) return;
+
+  mapboxgl.accessToken = token;
+
+  const map = new mapboxgl.Map({
+    container: 'business-mini-map',
+    style: 'mapbox://styles/mapbox/light-v11',
+    center: [lng, lat],
+    zoom: 13,
+    interactive: false,
+    attributionControl: false,
+  });
+
+  // Navy marker
+  const el = document.createElement('div');
+  el.style.width = '24px';
+  el.style.height = '24px';
+  el.style.borderRadius = '50%';
+  el.style.backgroundColor = '#1e2d4f';
+  el.style.border = '3px solid #ffffff';
+  el.style.boxShadow = '0 2px 6px rgba(0,0,0,0.3)';
+
+  new mapboxgl.Marker({ element: el })
+    .setLngLat([lng, lat])
+    .addTo(map);
+})();
+</script>

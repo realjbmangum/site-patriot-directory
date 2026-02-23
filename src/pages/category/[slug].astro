@@ -1,0 +1,119 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import FilterBar from '../../components/FilterBar.astro';
+import BusinessGrid from '../../components/BusinessGrid.astro';
+import AdSlot from '../../components/AdSlot.astro';
+import { getCategoryBySlug, getBusinesses, getCategories, getStates, getBusinessBadges } from '../../lib/db';
+import type { Badge } from '../../lib/db';
+
+const db = Astro.locals.runtime.env.DB;
+const { slug } = Astro.params;
+
+const category = await getCategoryBySlug(db, slug!);
+if (!category) {
+  return Astro.redirect('/directory');
+}
+
+const url = Astro.url;
+const selectedState = url.searchParams.get('state') || '';
+
+const queryOptions: Parameters<typeof getBusinesses>[1] = { category: slug };
+if (selectedState) queryOptions.state = selectedState;
+
+const businesses = await getBusinesses(db, queryOptions);
+const categories = await getCategories(db);
+const states = await getStates(db);
+
+// Fetch badges for displayed businesses
+const badgesByBusiness: Record<number, Badge[]> = {};
+for (const biz of businesses) {
+  badgesByBusiness[biz.id] = await getBusinessBadges(db, biz.id);
+}
+
+const emojiMap: Record<string, string> = {
+  'restaurants-food': '\ud83c\udf7d\ufe0f',
+  'farms-agriculture': '\ud83d\ude9c',
+  'brewing-spirits': '\ud83c\udf7a',
+  'handmade-artisan': '\ud83d\udd28',
+  'apparel-accessories': '\ud83d\udc55',
+  'firearms-outdoors': '\ud83c\udfaf',
+  'home-building': '\ud83c\udfe0',
+  'faith-family': '\ud83d\ude4f',
+  'health-wellness': '\ud83c\udf3f',
+  'services-trades': '\ud83d\udd27',
+  'books-media': '\ud83d\udcda',
+  'pets-animals': '\ud83d\udc3e',
+};
+const emoji = emojiMap[category.slug] || '\u2b50';
+---
+
+<BaseLayout
+  title={`American-Owned ${category.name} — Patriot Directory`}
+  description={`Browse ${category.count ?? businesses.length} American-owned ${category.name.toLowerCase()} businesses. Find patriot ${category.name.toLowerCase()} near you.`}
+>
+  <!-- Hero -->
+  <section class="bg-navy text-white py-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center gap-4 mb-3">
+        <span class="text-5xl">{emoji}</span>
+        <div>
+          <h1 class="font-display text-3xl md:text-4xl font-bold">{category.name}</h1>
+          <p class="text-white/70 mt-1">
+            {category.count ?? businesses.length} {(category.count ?? businesses.length) === 1 ? 'business' : 'businesses'}
+          </p>
+        </div>
+      </div>
+      {category.description && (
+        <p class="text-white/60 text-lg max-w-2xl mt-4">{category.description}</p>
+      )}
+    </div>
+  </section>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Filters (state only, category pre-selected) -->
+    <form method="GET" class="bg-white rounded-lg shadow-sm border border-gray-100 p-4 mb-8">
+      <div class="flex flex-col sm:flex-row gap-4">
+        <div class="flex-1">
+          <label for="state" class="block text-sm font-medium text-navy mb-1">Filter by State</label>
+          <select
+            name="state"
+            id="state"
+            class="w-full rounded-lg border-gray-300 shadow-sm text-sm focus:border-navy focus:ring-navy"
+          >
+            <option value="">All States</option>
+            {states.map((s) => (
+              <option value={s.state} selected={selectedState === s.state}>
+                {s.state} ({s.count})
+              </option>
+            ))}
+          </select>
+        </div>
+        <div class="flex items-end">
+          <button type="submit" class="btn-primary text-sm px-5 py-2.5 w-full sm:w-auto">
+            Filter
+          </button>
+        </div>
+      </div>
+    </form>
+
+    <!-- Business Grid -->
+    <BusinessGrid
+      businesses={businesses}
+      badgesByBusiness={badgesByBusiness}
+    />
+
+    <!-- Ad Slot -->
+    {businesses.length > 0 && (
+      <div class="mt-8">
+        <AdSlot slot="category-bottom" />
+      </div>
+    )}
+
+    <!-- Back link -->
+    <div class="mt-8 text-center">
+      <a href="/directory" class="text-navy hover:text-crimson transition-colors text-sm font-medium">
+        &larr; Back to all businesses
+      </a>
+    </div>
+  </div>
+</BaseLayout>

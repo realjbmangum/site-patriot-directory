@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://patriotdirectory.com/sitemap-index.xml

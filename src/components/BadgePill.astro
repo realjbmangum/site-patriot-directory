@@ -1,0 +1,39 @@
+---
+interface Props {
+  badge: {
+    slug: string;
+    name: string;
+    icon: string | null;
+    color: string | null;
+  };
+}
+
+const { badge } = Astro.props;
+
+const iconMap: Record<string, string> = {
+  fire: '\ud83d\udd25',
+  rocket: '\ud83d\ude80',
+  shield: '\ud83d\udee1\ufe0f',
+  flag: '\ud83c\uddfa\ud83c\uddf8',
+  truck: '\ud83d\ude9a',
+  users: '\ud83d\udc68\u200d\ud83d\udc69\u200d\ud83d\udc67\u200d\ud83d\udc66',
+  star: '\u2b50',
+};
+
+const colorMap: Record<string, string> = {
+  amber: 'bg-yellow-100 text-yellow-800',
+  red: 'bg-red-100 text-red-800',
+  blue: 'bg-blue-100 text-blue-800',
+  green: 'bg-green-100 text-green-800',
+  purple: 'bg-purple-100 text-purple-800',
+  indigo: 'bg-indigo-100 text-indigo-800',
+};
+
+const emoji = badge.icon ? iconMap[badge.icon] || '' : '';
+const colorClasses = badge.color ? colorMap[badge.color] || 'bg-gray-100 text-gray-800' : 'bg-gray-100 text-gray-800';
+---
+
+<span class:list={['inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium whitespace-nowrap', colorClasses]}>
+  {emoji && <span class="text-xs">{emoji}</span>}
+  {badge.name}
+</span>

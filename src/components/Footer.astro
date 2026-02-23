@@ -1,0 +1,76 @@
+---
+const currentYear = new Date().getFullYear();
+
+const footerLinks = [
+  { label: 'Browse', href: '/directory' },
+  { label: 'Map', href: '/map' },
+  { label: 'About', href: '/about' },
+  { label: 'Privacy', href: '/privacy' },
+  { label: 'Terms', href: '/terms' },
+];
+---
+
+<footer class="bg-navy text-white mt-16">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <!-- Brand -->
+      <div>
+        <a href="/" class="flex items-center gap-2 mb-4">
+          <span class="text-gold text-xl">&#9733;</span>
+          <span class="font-display text-xl font-bold">Patriot Directory</span>
+        </a>
+        <p class="text-white/60 text-sm leading-relaxed">
+          Born from the Jimmy's Seafood moment. A hand-curated directory of American businesses built on pride, craft, and community.
+        </p>
+      </div>
+
+      <!-- Links -->
+      <div>
+        <h3 class="font-display text-sm font-semibold uppercase tracking-wider text-gold mb-4">
+          Directory
+        </h3>
+        <ul class="space-y-2">
+          {footerLinks.map((link) => (
+            <li>
+              <a
+                href={link.href}
+                class="text-white/60 hover:text-gold text-sm transition-colors"
+              >
+                {link.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <!-- Social (placeholder) -->
+      <div>
+        <h3 class="font-display text-sm font-semibold uppercase tracking-wider text-gold mb-4">
+          Connect
+        </h3>
+        <p class="text-white/60 text-sm mb-4">
+          Know a business that belongs here? Tell us about it.
+        </p>
+        <a
+          href="mailto:hello@patriotdirectory.com?subject=Business%20Submission"
+          class="inline-flex items-center gap-2 text-sm font-medium text-gold hover:text-gold/80 transition-colors"
+        >
+          Submit a Business
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+          </svg>
+        </a>
+      </div>
+    </div>
+
+    <!-- Bottom bar -->
+    <div class="mt-12 pt-8 border-t border-white/10 flex flex-col sm:flex-row justify-between items-center gap-4">
+      <p class="text-white/40 text-sm">
+        &copy; {currentYear} Patriot Directory. All rights reserved.
+      </p>
+      <p class="text-white/40 text-xs">
+        Buy American. Support local. Stand proud.
+      </p>
+    </div>
+  </div>
+</footer>

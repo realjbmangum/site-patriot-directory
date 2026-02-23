@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Wrangler local state
+.wrangler/
+
+# Environment variables
+.env
+
+# Astro generated
+.astro/
+
+# macOS
+.DS_Store
+
+# Logs
+*.log
+
+# Data (generated files, not source)
+data/import.sql
+data/geocode-update.sql

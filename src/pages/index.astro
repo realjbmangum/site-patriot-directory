@@ -1,0 +1,226 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import CategoryCard from '../components/CategoryCard.astro';
+import BusinessGrid from '../components/BusinessGrid.astro';
+import AdSlot from '../components/AdSlot.astro';
+import { getCategories, getBusinesses, getStates, getBusinessBadges } from '../lib/db';
+import { stateAbbrToName, stateAbbrToSlug } from '../lib/utils';
+import type { Badge } from '../lib/db';
+
+const db = Astro.locals.runtime.env.DB;
+
+const categories = await getCategories(db);
+const featuredBusinesses = await getBusinesses(db, { featured: true, limit: 6 });
+const states = await getStates(db);
+const totalBusinesses = states.reduce((sum, s) => sum + s.count, 0);
+
+// Fetch badges for featured businesses
+const badgesByBusiness: Record<number, Badge[]> = {};
+for (const biz of featuredBusinesses) {
+  badgesByBusiness[biz.id] = await getBusinessBadges(db, biz.id);
+}
+
+// Category counts for Chart.js
+const chartLabels = categories.map(c => c.name);
+const chartData = categories.map(c => c.count ?? 0);
+---
+
+<BaseLayout
+  title="Patriot Directory — Support American Businesses"
+  description={`Discover ${totalBusinesses}+ proudly American businesses. Browse by category, find near you on the map, and support businesses that make America great.`}
+>
+  <!-- Hero -->
+  <section class="relative text-white overflow-hidden" style="min-height: 560px;">
+    <!-- Background video -->
+    <video
+      autoplay
+      muted
+      loop
+      playsinline
+      class="absolute inset-0 w-full h-full object-cover"
+      style="z-index: 0;"
+    >
+      <source src="/grok-video-f1ccaa26-1181-492a-9a66-903e272102f5.mp4" type="video/mp4" />
+    </video>
+
+    <!-- Dark overlay — navy tint so text is readable -->
+    <div class="absolute inset-0 bg-navy/75" style="z-index: 1;"></div>
+
+    <!-- Flag stripe accent on top -->
+    <div class="absolute top-0 left-0 right-0 h-1 flex" style="z-index: 2;">
+      <div class="flex-1 bg-crimson"></div>
+      <div class="flex-1 bg-white"></div>
+      <div class="flex-1 bg-navy"></div>
+    </div>
+
+    <!-- Content -->
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-36 text-center" style="z-index: 2;">
+      <h1 class="font-display text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-6 drop-shadow-lg">
+        Support the Businesses<br class="hidden md:block" /> That Built This Country
+      </h1>
+      <p class="text-white/85 text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed drop-shadow">
+        {totalBusinesses > 0 ? `${totalBusinesses}+` : 'Hundreds of'} hand-curated American small businesses — restaurants, farms, breweries, craftspeople, veterans, and families. Find them by category, by state, or on the map.
+      </p>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <a href="/directory" class="btn-primary text-base px-8 py-4">
+          Explore the Directory
+        </a>
+        <a href="/map" class="inline-flex items-center justify-center px-8 py-4 border-2 border-white/40 text-white font-semibold rounded-lg hover:bg-white/15 transition-colors duration-200 text-base backdrop-blur-sm">
+          Open the Map
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Category Grid -->
+  <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    <div class="text-center mb-10">
+      <h2 class="font-display text-3xl font-bold text-navy mb-3">Browse by Category</h2>
+      <p class="text-gray-600">Every industry. Every corner of America.</p>
+    </div>
+
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+      {categories.map((category) => (
+        <CategoryCard category={category} />
+      ))}
+    </div>
+  </section>
+
+  <!-- Ad Slot -->
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <AdSlot slot="home-below-categories" />
+  </div>
+
+  <!-- Featured Businesses -->
+  {featuredBusinesses.length > 0 && (
+    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <div class="star-divider">
+        <span class="text-gold text-xl">&#9733;</span>
+      </div>
+      <BusinessGrid
+        businesses={featuredBusinesses}
+        badgesByBusiness={badgesByBusiness}
+        title="Featured Businesses"
+      />
+      <div class="text-center mt-8">
+        <a href="/directory" class="btn-outline">View All Businesses</a>
+      </div>
+    </section>
+  )}
+
+  <!-- Chart.js Stats Section -->
+  <section class="bg-parchment py-16">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-10">
+        <h2 class="font-display text-3xl font-bold text-navy mb-3">The American Business Movement</h2>
+        <p class="text-gray-600">See which industries are leading the charge</p>
+      </div>
+      <div class="bg-white rounded-lg shadow-sm border border-gray-100 p-6 md:p-8">
+        <canvas id="category-chart" height="400"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <script is:inline src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <script is:inline define:vars={{ chartLabels, chartData }}>
+    document.addEventListener('DOMContentLoaded', function() {
+      const ctx = document.getElementById('category-chart');
+      if (!ctx) return;
+
+      const navy = '#1e2d4f';
+      const crimson = '#c41e3a';
+      const gold = '#d4a017';
+      const colors = chartData.map((_, i) => [navy, crimson, gold][i % 3]);
+
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: chartLabels,
+          datasets: [{
+            data: chartData,
+            backgroundColor: colors,
+            borderRadius: 4,
+            barThickness: 24,
+          }],
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return context.parsed.x + ' businesses';
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              beginAtZero: true,
+              ticks: { precision: 0 },
+              grid: { color: '#f0f0f0' },
+            },
+            y: {
+              grid: { display: false },
+              ticks: {
+                font: { family: 'Inter, system-ui, sans-serif', size: 13 },
+              },
+            },
+          },
+        },
+      });
+    });
+  </script>
+
+  <!-- Browse by State -->
+  <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    <div class="star-divider">
+      <span class="text-gold text-xl">&#9733;</span>
+    </div>
+    <div class="text-center mb-10">
+      <h2 class="font-display text-3xl font-bold text-navy mb-3">Browse by State</h2>
+      <p class="text-gray-600">American businesses in every state that has them</p>
+    </div>
+
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+      {states.map((s) => (
+        <a
+          href={`/${stateAbbrToSlug(s.state)}`}
+          class="flex items-center justify-between px-4 py-3 bg-white rounded-lg border border-gray-100 hover:border-navy/30 hover:shadow-sm transition-all duration-200 group"
+        >
+          <span class="text-sm font-medium text-navy group-hover:text-crimson transition-colors">
+            {stateAbbrToName(s.state)}
+          </span>
+          <span class="text-xs text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full">
+            {s.count}
+          </span>
+        </a>
+      ))}
+    </div>
+  </section>
+
+  <!-- Know a Patriot Business CTA -->
+  <section class="bg-navy text-white py-16">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <h2 class="font-display text-3xl font-bold mb-4">Know a Business That Belongs Here?</h2>
+      <p class="text-white/70 text-lg mb-8 leading-relaxed">
+        This directory grows through the people who love it. If you know an American
+        business built on pride, craft, and community, send us their name.
+      </p>
+      <a
+        href="mailto:hello@patriotdirectory.com?subject=Business%20Submission"
+        class="btn-cta text-base px-8 py-4"
+      >
+        Submit a Business
+      </a>
+    </div>
+  </section>
+
+  <!-- Ad Slot -->
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <AdSlot slot="home-above-footer" />
+  </div>
+</BaseLayout>

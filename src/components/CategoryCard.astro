@@ -1,0 +1,43 @@
+---
+interface Props {
+  category: {
+    slug: string;
+    name: string;
+    icon?: string;
+    count?: number;
+  };
+}
+
+const { category } = Astro.props;
+
+const emojiMap: Record<string, string> = {
+  'restaurants-food': '\ud83c\udf7d\ufe0f',
+  'farms-agriculture': '\ud83d\ude9c',
+  'brewing-spirits': '\ud83c\udf7a',
+  'handmade-artisan': '\ud83d\udd28',
+  'apparel-accessories': '\ud83d\udc55',
+  'firearms-outdoors': '\ud83c\udfaf',
+  'home-building': '\ud83c\udfe0',
+  'faith-family': '\ud83d\ude4f',
+  'health-wellness': '\ud83c\udf3f',
+  'services-trades': '\ud83d\udd27',
+  'books-media': '\ud83d\udcda',
+  'pets-animals': '\ud83d\udc3e',
+};
+
+const emoji = emojiMap[category.slug] || '\u2b50';
+const count = category.count ?? 0;
+---
+
+<a
+  href={`/category/${category.slug}`}
+  class="card card-hover-accent group p-6 text-center flex flex-col items-center gap-3 hover:scale-[1.02] transition-all duration-200"
+>
+  <span class="text-4xl">{emoji}</span>
+  <h3 class="font-display text-lg font-semibold text-navy group-hover:text-crimson transition-colors">
+    {category.name}
+  </h3>
+  <p class="text-sm text-gray-500">
+    {count} {count === 1 ? 'business' : 'businesses'}
+  </p>
+</a>

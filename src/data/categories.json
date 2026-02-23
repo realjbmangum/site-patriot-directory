@@ -1,0 +1,14 @@
+[
+  { "slug": "restaurants-food", "name": "Restaurants & Food", "icon": "\ud83c\udf7d\ufe0f", "description": "American-owned restaurants, diners, BBQ, seafood, and food trucks" },
+  { "slug": "farms-agriculture", "name": "Farms & Agriculture", "icon": "\ud83d\ude9c", "description": "Farms, ranches, feed stores, and agricultural services" },
+  { "slug": "brewing-spirits", "name": "Brewing & Spirits", "icon": "\ud83c\udf7a", "description": "Craft breweries, distilleries, wineries, and taprooms" },
+  { "slug": "handmade-artisan", "name": "Handmade & Artisan", "icon": "\ud83d\udd28", "description": "Woodworkers, leather crafters, jewelers, and artisan makers" },
+  { "slug": "apparel-accessories", "name": "Apparel & Accessories", "icon": "\ud83d\udc55", "description": "American-made clothing, accessories, and footwear" },
+  { "slug": "firearms-outdoors", "name": "Firearms & Outdoors", "icon": "\ud83c\udfaf", "description": "Gun shops, ranges, outfitters, hunting, and outdoor gear" },
+  { "slug": "home-building", "name": "Home & Building", "icon": "\ud83c\udfe0", "description": "Contractors, builders, home goods, and home improvement" },
+  { "slug": "faith-family", "name": "Faith & Family", "icon": "\ud83d\ude4f", "description": "Faith-based businesses, family services, and community organizations" },
+  { "slug": "health-wellness", "name": "Health & Wellness", "icon": "\ud83c\udf3f", "description": "Gyms, wellness services, supplements, and natural products" },
+  { "slug": "services-trades", "name": "Services & Trades", "icon": "\ud83d\udd27", "description": "Plumbers, electricians, mechanics, and skilled tradespeople" },
+  { "slug": "books-media", "name": "Books & Media", "icon": "\ud83d\udcda", "description": "Publishers, bookstores, podcasters, and content creators" },
+  { "slug": "pets-animals", "name": "Pets & Animals", "icon": "\ud83d\udc3e", "description": "Pet food, supplies, grooming, and animal services" }
+]

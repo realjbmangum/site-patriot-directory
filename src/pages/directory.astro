@@ -1,0 +1,119 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import FilterBar from '../components/FilterBar.astro';
+import BusinessGrid from '../components/BusinessGrid.astro';
+import AdSlot from '../components/AdSlot.astro';
+import { getBusinesses, getCategories, getStates, getBusinessBadges } from '../lib/db';
+import type { Badge } from '../lib/db';
+
+const db = Astro.locals.runtime.env.DB;
+
+const url = Astro.url;
+const selectedCategory = url.searchParams.get('category') || '';
+const selectedState = url.searchParams.get('state') || '';
+const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10));
+const perPage = 24;
+
+const categories = await getCategories(db);
+const states = await getStates(db);
+
+// Build query options
+const queryOptions: Parameters<typeof getBusinesses>[1] = {};
+if (selectedCategory) queryOptions.category = selectedCategory;
+if (selectedState) queryOptions.state = selectedState;
+
+const allBusinesses = await getBusinesses(db, queryOptions);
+const totalCount = allBusinesses.length;
+const totalPages = Math.ceil(totalCount / perPage);
+const businesses = allBusinesses.slice((page - 1) * perPage, page * perPage);
+
+// Fetch badges for displayed businesses
+const badgesByBusiness: Record<number, Badge[]> = {};
+for (const biz of businesses) {
+  badgesByBusiness[biz.id] = await getBusinessBadges(db, biz.id);
+}
+
+// Build pagination URLs
+function buildPageUrl(p: number): string {
+  const params = new URLSearchParams();
+  if (selectedCategory) params.set('category', selectedCategory);
+  if (selectedState) params.set('state', selectedState);
+  params.set('page', String(p));
+  return `/directory?${params.toString()}`;
+}
+---
+
+<BaseLayout
+  title="Browse All Patriot Businesses"
+  description={`Browse ${totalCount} American-owned businesses. Filter by category and state. Find patriot businesses worth supporting.`}
+>
+  <!-- Hero -->
+  <section class="bg-navy text-white py-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <h1 class="font-display text-3xl md:text-4xl font-bold mb-2">Browse Directory</h1>
+      <p class="text-white/70">
+        Showing {totalCount} {totalCount === 1 ? 'business' : 'businesses'}
+        {selectedCategory && ` in ${categories.find(c => c.slug === selectedCategory)?.name || selectedCategory}`}
+        {selectedState && ` in ${selectedState}`}
+      </p>
+    </div>
+  </section>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Filters -->
+    <FilterBar
+      categories={categories}
+      states={states}
+      selectedCategory={selectedCategory}
+      selectedState={selectedState}
+    />
+
+    <!-- Business Grid -->
+    <BusinessGrid
+      businesses={businesses}
+      badgesByBusiness={badgesByBusiness}
+    />
+
+    <!-- Ad Slot -->
+    {businesses.length > 0 && (
+      <div class="mt-8">
+        <AdSlot slot="directory-bottom" />
+      </div>
+    )}
+
+    <!-- Pagination -->
+    {totalPages > 1 && (
+      <nav class="flex items-center justify-center gap-4 mt-12" aria-label="Pagination">
+        {page > 1 ? (
+          <a
+            href={buildPageUrl(page - 1)}
+            class="btn-outline text-sm px-5 py-2.5"
+          >
+            &larr; Previous
+          </a>
+        ) : (
+          <span class="inline-flex items-center justify-center px-5 py-2.5 border-2 border-gray-200 text-gray-400 rounded-lg text-sm cursor-not-allowed">
+            &larr; Previous
+          </span>
+        )}
+
+        <span class="text-sm text-gray-600">
+          Page {page} of {totalPages}
+        </span>
+
+        {page < totalPages ? (
+          <a
+            href={buildPageUrl(page + 1)}
+            class="btn-outline text-sm px-5 py-2.5"
+          >
+            Next &rarr;
+          </a>
+        ) : (
+          <span class="inline-flex items-center justify-center px-5 py-2.5 border-2 border-gray-200 text-gray-400 rounded-lg text-sm cursor-not-allowed">
+            Next &rarr;
+          </span>
+        )}
+      </nav>
+    )}
+  </div>
+</BaseLayout>
