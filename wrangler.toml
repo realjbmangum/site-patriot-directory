@@ -6,4 +6,4 @@ compatibility_flags = ["nodejs_compat"]
 [[d1_databases]]
 binding = "DB"
 database_name = "patriot_directory_db"
-database_id = "placeholder"
+database_id = "02cb1820-667a-45bf-b751-6c90e10e9906"
