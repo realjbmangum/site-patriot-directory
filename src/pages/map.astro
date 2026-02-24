@@ -98,6 +98,12 @@ const pageDescription = `Interactive map of ${businesses.length}+ patriot busine
       <!-- Map -->
       <div class="order-1 lg:order-2 flex-1 relative min-h-[50vh] lg:min-h-0">
         <div id="map" class="absolute inset-0"></div>
+        <!-- Style switcher -->
+        <div id="map-style-switcher" class="absolute top-2 left-2 z-10 flex rounded-md overflow-hidden shadow border border-gray-200 bg-white text-xs font-semibold">
+          <button data-style="standard" class="style-btn px-3 py-1.5 text-navy bg-navy/10 border-r border-gray-200 hover:bg-gray-50 transition-colors">Map</button>
+          <button data-style="satellite" class="style-btn px-3 py-1.5 text-gray-500 border-r border-gray-200 hover:bg-gray-50 transition-colors">Satellite</button>
+          <button data-style="3d" class="style-btn px-3 py-1.5 text-gray-500 hover:bg-gray-50 transition-colors">3D</button>
+        </div>
       </div>
 
     </div>
@@ -203,6 +209,8 @@ const pageDescription = `Interactive map of ${businesses.length}+ patriot busine
       }),
       'top-right'
     );
+    map.addControl(new mapboxgl.FullscreenControl(), 'top-right');
+    map.addControl(new mapboxgl.ScaleControl({ unit: 'imperial' }), 'bottom-left');
 
     // Geocoder
     const geocoder = new MapboxGeocoder({
@@ -220,20 +228,19 @@ const pageDescription = `Interactive map of ${businesses.length}+ patriot busine
     }
 
     // =========================================================================
-    // MAP LAYERS
+    // MAP LAYERS — extracted so they can be re-added after a style switch
     // =========================================================================
-    map.on('load', () => {
-      const geojson = buildGeoJSON(filteredBusinesses);
+    function setupLayers() {
+      if (map.getSource('businesses')) return; // already added
 
       map.addSource('businesses', {
         type: 'geojson',
-        data: geojson,
+        data: buildGeoJSON(filteredBusinesses),
         cluster: true,
         clusterMaxZoom: 14,
         clusterRadius: 50,
       });
 
-      // Cluster circles
       map.addLayer({
         id: 'clusters',
         type: 'circle',
@@ -241,19 +248,12 @@ const pageDescription = `Interactive map of ${businesses.length}+ patriot busine
         filter: ['has', 'point_count'],
         paint: {
           'circle-color': '#1e2d4f',
-          'circle-radius': [
-            'step',
-            ['get', 'point_count'],
-            18,  // default radius
-            10, 24,  // radius at count >= 10
-            50, 32,  // radius at count >= 50
-          ],
+          'circle-radius': ['step', ['get', 'point_count'], 18, 10, 24, 50, 32],
           'circle-stroke-width': 2,
           'circle-stroke-color': '#ffffff',
         },
       });
 
-      // Cluster count labels
       map.addLayer({
         id: 'cluster-count',
         type: 'symbol',
@@ -264,12 +264,9 @@ const pageDescription = `Interactive map of ${businesses.length}+ patriot busine
           'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'],
           'text-size': 13,
         },
-        paint: {
-          'text-color': '#ffffff',
-        },
+        paint: { 'text-color': '#ffffff' },
       });
 
-      // Individual unclustered points
       map.addLayer({
         id: 'unclustered-point',
         type: 'circle',
@@ -282,29 +279,29 @@ const pageDescription = `Interactive map of ${businesses.length}+ patriot busine
           'circle-stroke-color': '#ffffff',
         },
       });
+    }
 
-      // -----------------------------------------------------------------------
-      // CLUSTER CLICK → ZOOM
-      // -----------------------------------------------------------------------
+    // Re-add layers after style switch (style.load fires before load on init)
+    let layersReady = false;
+    map.on('style.load', () => { if (layersReady) setupLayers(); });
+
+    map.on('load', () => {
+      layersReady = true;
+      setupLayers();
+
+      // Cluster click → zoom in
       map.on('click', 'clusters', (e) => {
         const features = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
         const clusterId = features[0].properties.cluster_id;
         map.getSource('businesses').getClusterExpansionZoom(clusterId, (err, zoom) => {
           if (err) return;
-          map.easeTo({
-            center: features[0].geometry.coordinates,
-            zoom: zoom,
-          });
+          map.easeTo({ center: features[0].geometry.coordinates, zoom });
         });
       });
 
-      // -----------------------------------------------------------------------
-      // INDIVIDUAL MARKER CLICK → POPUP
-      // -----------------------------------------------------------------------
+      // Individual marker click → popup
       map.on('click', 'unclustered-point', (e) => {
-        const coords = e.features[0].geometry.coordinates.slice();
-        const props = e.features[0].properties;
-        showPopup(coords, props);
+        showPopup(e.features[0].geometry.coordinates.slice(), e.features[0].properties);
       });
 
       // Cursor styles
@@ -313,11 +310,93 @@ const pageDescription = `Interactive map of ${businesses.length}+ patriot busine
       map.on('mouseenter', 'unclustered-point', () => { map.getCanvas().style.cursor = 'pointer'; });
       map.on('mouseleave', 'unclustered-point', () => { map.getCanvas().style.cursor = ''; });
 
-      // Fit bounds to US on load
       map.fitBounds([[-125, 24], [-66, 50]], { padding: 40 });
-
-      // Build sidebar
       renderSidebar();
+    });
+
+    // =========================================================================
+    // STYLE SWITCHER + 3D TERRAIN
+    // =========================================================================
+    const mapStyles = {
+      standard: 'mapbox://styles/mapbox/light-v11',
+      satellite: 'mapbox://styles/mapbox/satellite-streets-v12',
+    };
+    let is3D = false;
+
+    function enableTerrain() {
+      if (!map.getSource('mapbox-dem')) {
+        map.addSource('mapbox-dem', {
+          type: 'raster-dem',
+          url: 'mapbox://mapbox.mapbox-terrain-dem-v1',
+          tileSize: 512,
+          maxzoom: 14,
+        });
+      }
+      map.setTerrain({ source: 'mapbox-dem', exaggeration: 1.5 });
+
+      if (!map.getLayer('3d-buildings')) {
+        const layers = map.getStyle().layers;
+        let firstLabelId;
+        for (const layer of layers) {
+          if (layer.type === 'symbol') { firstLabelId = layer.id; break; }
+        }
+        map.addLayer({
+          id: '3d-buildings',
+          source: 'composite',
+          'source-layer': 'building',
+          filter: ['==', 'extrude', 'true'],
+          type: 'fill-extrusion',
+          minzoom: 12,
+          paint: {
+            'fill-extrusion-color': '#aaa',
+            'fill-extrusion-height': ['interpolate', ['linear'], ['zoom'], 15, 0, 15.05, ['get', 'height']],
+            'fill-extrusion-base': ['interpolate', ['linear'], ['zoom'], 15, 0, 15.05, ['get', 'min_height']],
+            'fill-extrusion-opacity': 0.6,
+          },
+        }, firstLabelId);
+      }
+
+      const zoom = map.getZoom();
+      map.easeTo({ pitch: 45, bearing: -15, zoom: zoom < 12 ? 13 : zoom, duration: 800 });
+      is3D = true;
+    }
+
+    function disableTerrain() {
+      map.setTerrain(null);
+      if (map.getLayer('3d-buildings')) map.removeLayer('3d-buildings');
+      if (map.getSource('mapbox-dem')) map.removeSource('mapbox-dem');
+      map.easeTo({ pitch: 0, bearing: 0, duration: 500 });
+      is3D = false;
+    }
+
+    function setActiveStyleBtn(key) {
+      document.querySelectorAll('.style-btn').forEach(btn => {
+        const active = btn.dataset.style === key;
+        btn.classList.toggle('text-navy', active);
+        btn.classList.toggle('bg-navy/10', active);
+        btn.classList.toggle('text-gray-500', !active);
+        btn.classList.remove('bg-gray-50');
+      });
+    }
+
+    function switchMapStyle(styleKey) {
+      if (styleKey === '3d') {
+        if (is3D) {
+          disableTerrain();
+          setActiveStyleBtn('standard');
+        } else {
+          enableTerrain();
+          setActiveStyleBtn('3d');
+        }
+        return;
+      }
+      if (is3D) disableTerrain();
+      map.setStyle(mapStyles[styleKey]); // style.load will re-add layers
+      setActiveStyleBtn(styleKey);
+    }
+
+    document.querySelectorAll('.style-btn').forEach(btn => {
+      btn.addEventListener('click', () => switchMapStyle(btn.dataset.style));
     });
 
     // =========================================================================
@@ -340,7 +419,10 @@ const pageDescription = `Interactive map of ${businesses.length}+ patriot busine
           </p>
           <p style="margin: 0 0 6px; font-size: 12px; color: #6b7280;">${escapeHtml(props.city)}, ${escapeHtml(props.state)}</p>
           ${desc ? `<p style="margin: 0 0 8px; font-size: 13px; color: #374151; line-height: 1.4;">${escapeHtml(desc)}</p>` : ''}
-          <a href="/business/${encodeURIComponent(props.slug)}" style="font-size: 13px; font-weight: 600; color: #c41e3a; text-decoration: none;">View Details &rarr;</a>
+          <div style="display: flex; gap: 12px; align-items: center;">
+            <a href="/business/${encodeURIComponent(props.slug)}" style="font-size: 13px; font-weight: 600; color: #c41e3a; text-decoration: none;">View Details &rarr;</a>
+            <a href="https://www.google.com/maps?layer=c&cbll=${coords[1]},${coords[0]}" target="_blank" rel="noopener" style="font-size: 12px; color: #6b7280; text-decoration: none;">Street View</a>
+          </div>
         </div>
       `;
 
