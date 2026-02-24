@@ -81,6 +81,7 @@ export interface MapBusiness {
   category_slug: string;
   city: string;
   state: string;
+  street_address: string | null;
   short_description: string | null;
 }
 
@@ -228,7 +229,7 @@ export async function getAllBusinessesForMap(
   const sql = `
     SELECT b.id, b.name, b.slug, b.latitude, b.longitude,
            b.category_id, c.name AS category_name, c.slug AS category_slug,
-           b.city, b.state, b.short_description
+           b.city, b.state, b.street_address, b.short_description
     FROM businesses b
     JOIN categories c ON b.category_id = c.id
     WHERE b.latitude IS NOT NULL AND b.longitude IS NOT NULL
