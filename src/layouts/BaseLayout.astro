@@ -13,7 +13,8 @@ interface Props {
 }
 
 const { title, description, ogImage, canonicalUrl, jsonLd } = Astro.props;
-const mapboxToken = import.meta.env.PUBLIC_MAPBOX_TOKEN || '';
+const runtimeEnv = Astro.locals.runtime?.env;
+const mapboxToken = runtimeEnv?.PUBLIC_MAPBOX_TOKEN || import.meta.env.PUBLIC_MAPBOX_TOKEN || '';
 ---
 
 <!doctype html>
@@ -30,6 +31,9 @@ const mapboxToken = import.meta.env.PUBLIC_MAPBOX_TOKEN || '';
 
     <!-- Mapbox token for client-side map components -->
     <meta name="mapbox-token" content={mapboxToken} />
+
+    <!-- Named slot for page-specific head content (CSS, etc.) -->
+    <slot name="head" />
 
     <SEOHead
       title={title}
