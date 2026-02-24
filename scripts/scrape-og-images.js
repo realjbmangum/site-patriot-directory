@@ -21,10 +21,11 @@ const OUTPUT_FILE = 'data/photos-update.sql';
 const DELAY_MS = 800;
 
 const BUSINESSES = [
+  // ── Original 13 (thread batch 1) ─────────────────────────────────────────
   { slug: 'jimmys-famous-seafood',              url: 'https://jimmysfamousseafood.com' },
   { slug: 'ex-umbris-designs',                  url: 'https://exumbrisdesigns.com' },
   { slug: 'toor-knives',                        url: 'https://toorknives.com' },
-  { slug: 'from-logo-to-leather',               url: null }, // X-only, no website
+  { slug: 'from-logo-to-leather',               url: null }, // X-only
   { slug: 'chagrin-valley-soap-salve',          url: 'https://www.chagrinvalleysoapandsalve.com' },
   { slug: 'little-seed-farm',                   url: 'https://littleseedfarm.com' },
   { slug: 'debra-bruner-studio',                url: 'https://www.debrabrunerstudio.com' },
@@ -34,6 +35,57 @@ const BUSINESSES = [
   { slug: 'original-appearance-manufacturing',  url: 'https://oamusa.com' },
   { slug: 'kickin-back-kreations',              url: 'https://kickinbackkreations.com' },
   { slug: 'happy-life-ranch',                   url: 'https://happyliferanch.com' },
+
+  // ── Group A (csv-a-1 through csv-a-15) ───────────────────────────────────
+  { slug: 'humming-meadow-honey',               url: 'https://hummingmeadowhoney.com' },
+  { slug: 'kiel-james-patrick',                 url: 'https://kieljamespatrick.com' },
+  { slug: 'the-buffalo-wool-co',                url: 'https://thebuffalowoolco.com' },
+  { slug: 'fountains-coffee',                   url: 'https://www.fountainscoffee.com' },
+  { slug: 'the-woolshire',                      url: 'https://thewoolshire.com' },
+  { slug: 'fox-and-root',                       url: 'https://www.foxandroot.com' },
+  { slug: 'ambrosian-candle-co',                url: 'https://ambrosiancandles.com' },
+  { slug: 'cotedge-socks',                      url: 'https://cotedge.com' },
+  { slug: 'tamburn-bindery',                    url: 'https://www.etsy.com/shop/TamburnBindery' },
+  { slug: 'galloway-woodworks',                 url: null }, // X-only
+  { slug: 'middleborne-arms',                   url: 'https://www.middlebornearms.com' },
+  { slug: 'lawrence-of-appalachia',             url: 'https://www.mythanthrope.com' },
+  { slug: 'black-wolf-homestead',               url: 'https://www.etsy.com/shop/BethAnneMakes' },
+  { slug: 'baritus-catholic-illustration',      url: 'https://www.barituscatholic.com' },
+  { slug: 'bake-across-europe',                 url: 'https://www.bakeacrosseurope.com' },
+
+  // ── Group B (csv-b-1 through csv-b-16) ───────────────────────────────────
+  { slug: 'orthodox-mason',                     url: 'https://www.orthodoxmasonry.com' },
+  { slug: 'seraphim-print-studio',              url: 'https://www.seraphimprintstudio.com' },
+  { slug: 'gubba-homestead',                    url: 'https://shop.gubbahomestead.com' },
+  { slug: 'wading-smith-woodworks',             url: null }, // X-only
+  { slug: 'cottage-pastures',                   url: 'https://cottagepastures.com' },
+  { slug: 'wasson-watch-co',                    url: 'https://wassonwatch.com' },
+  { slug: 'north-ranger',                       url: 'https://northrangers.com' },
+  { slug: 'peaces-of-indigo',                   url: 'https://www.peacesofindigo.com' },
+  { slug: 'nicholas-hayford-jewelry',           url: null }, // X-only
+  { slug: 'eli-sherbondy-machining',            url: null }, // X-only
+  { slug: 'primal-aromas',                      url: 'https://primalaromas.com' },
+  { slug: 'evers-forge-works',                  url: 'https://www.eversforgeworks.com' },
+  { slug: 'merican-af',                         url: null }, // X-only
+  { slug: 'silver-gold-honey-company',          url: null }, // X-only
+  { slug: 'armadillo-acres-farm',               url: 'https://halfacre-farms.com' },
+  { slug: 'tlc-ranch',                          url: 'https://tlcranch.com' },
+
+  // ── Group C (csv-c-1 through csv-c-14) ───────────────────────────────────
+  { slug: 'ave-maria-every-day',                url: 'https://www.etsy.com/shop/AveMariaEveryDay' },
+  { slug: 'puresteel-co',                       url: 'https://puresteelco.com' },
+  { slug: 'american-lictor',                    url: 'https://americanlictor.com' },
+  { slug: 'taylor-shellfish-farms',             url: 'https://www.taylorshellfishfarms.com' },
+  { slug: 'chooch-skookum',                     url: null }, // X-only
+  { slug: 'appalachian-wood-homestead',         url: null }, // X-only
+  { slug: 'parros-gun-shop',                    url: 'https://www.parros.com' },
+  { slug: 'bowtied-woodwork',                   url: 'https://bowtiewoodworks.com' },
+  { slug: 'felgenland-saga',                    url: 'https://www.amazon.com/dp/B0D32WVTJF' },
+  { slug: 'benford-brewing',                    url: 'https://benfordbrewing.com' },
+  { slug: 'flying-monk-leather',                url: 'https://www.flyingmonkleather.com' },
+  { slug: 'louisiana-crawfish-company',         url: 'https://www.lacrawfish.com' },
+  { slug: 'she-must-be-loved',                  url: 'https://shemustbeloved.com' },
+  { slug: 'vintage-mamas-cottage',              url: 'https://www.vintagemamascottage.net' },
 ];
 
 function sleep(ms) {
