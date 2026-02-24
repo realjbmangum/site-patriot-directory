@@ -14,7 +14,7 @@ interface Props {
 
 const { title, description, ogImage, canonicalUrl, jsonLd } = Astro.props;
 const runtimeEnv = Astro.locals.runtime?.env;
-const mapboxToken = runtimeEnv?.PUBLIC_MAPBOX_TOKEN || import.meta.env.PUBLIC_MAPBOX_TOKEN || '';
+const mapboxToken = runtimeEnv?.PUBLIC_MAPBOX_TOKEN || runtimeEnv?.MAPBOX_ACCESS_TOKEN || import.meta.env.PUBLIC_MAPBOX_TOKEN || '';
 ---
 
 <!doctype html>
