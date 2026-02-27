@@ -39,3 +39,99 @@
 - Mapbox free tier is 50k map loads/month — sufficient for launch
 - Category mapping must be flexible — spreadsheet category names may not match slugs exactly
 - State field in CSV may be full name or 2-char abbreviation — import script handles both
+
+---
+
+## Session - Feb 24, 2026
+
+**Completed:**
+- Applied original-thread, made-in-usa, veteran-owned, ships-nationwide, family-business badges to the 7 new thread businesses (seeded late last session)
+- Created scripts/scrape-og-images.js — Node.js script fetching og:image from business websites
+- Applied photo URLs for 10/13 businesses via Cloudflare MCP API
+- Added logo.png to header, footer, and as favicon
+- Redesigned header: white bg, doubled height (h-32), navy text, larger logo (h-20)
+- Seeded 45 new businesses from data/table.csv via 3-agent parallel research team
+  - Group A (1-15): Humming Meadow Honey → Bake Across Europe
+  - Group B (16-31): Orthodox Mason → TLC Ranch
+  - Group C (108-121): Ave Maria Every Day → Vintage Mama's Cottage
+- 59 queries / 1,018 rows written to D1 remote DB
+- Deployed to Cloudflare Pages (site-patriot-directory1.pages.dev)
+
+**Files Changed:**
+- data/seed-csv-businesses.sql — 45 businesses + badge inserts for all 3 groups
+- data/table.csv — source CSV from user
+- data/photos-update.sql — OG image URLs for 10 businesses
+- scripts/scrape-og-images.js — OG image scraper
+- src/components/Header.astro — white bg, h-32, navy text, h-20 logo
+- src/components/Footer.astro — logo added
+- src/layouts/BaseLayout.astro — favicon set to /logo.png
+- public/logo.png — site logo (added last session)
+
+**Decisions:**
+- wrangler d1 execute --remote --file works fine (earlier auth error was transient)
+- Multi-agent team (researcher-a/b/c) divides research across 45 businesses in parallel
+- NULL city → 'Unknown' since D1 schema has city NOT NULL
+- woman-owned badge doesn't exist in schema (only 7 badge types); skipped those badge inserts
+- Researchers used WebSearch to find websites, locations, phone, descriptions for each business
+
+**Current DB state:**
+- Jimmy's Famous Seafood (went-viral original seeded business)
+- 12 businesses from Feb 21 viral X thread (seed-thread-businesses.sql)
+- 45 businesses from table.csv (seed-csv-businesses.sql)
+- Total: ~58 businesses in D1
+
+**Next Steps:**
+- [ ] Get photos for new 45 businesses (run scrape-og-images.js once websites confirmed)
+- [ ] Geocode new businesses (run scripts/geocode.js with Mapbox token)
+- [ ] Connect a domain (patriotdirectory.com?)
+- [ ] Add more businesses from remaining CSV rows
+- [ ] SEO: title/description for each category/state page
+- [ ] Submit sitemap to Google
+
+**Gotchas:**
+- Multi-agent TeamCreate fails if previous team not deleted first (use TeamDelete before TeamCreate)
+- D1 wrangler --file auth error was transient — it works fine when retried
+- The `woman-owned` badge slug does NOT exist; only 7 badge types in schema
+- Several businesses are X-only with no website — photo and geocode will be harder for those
+
+---
+
+## Session - Feb 27, 2026
+
+**Completed:**
+- OG image scraping extended to all 45 new businesses (33/58 total with photos)
+- Fixed nav: removed duplicate Categories link (both Browse + Categories pointed to /directory, causing double highlight)
+- Geocoded 31 new businesses using Nominatim (free, no API key) via scripts/geocode-missing.js
+- Removed Bake Across Europe — not an American business, shouldn't be in directory
+- Multiple deploys to site-patriot-directory1.pages.dev
+
+**Files Changed:**
+- scripts/scrape-og-images.js — extended with all 45 new businesses
+- data/photos-update.sql — regenerated with 33 photo URLs
+- scripts/geocode-missing.js — new script using Nominatim for batch geocoding
+- data/geocode-missing.sql — 31 UPDATE statements for lat/lng
+- src/components/Header.astro — removed Categories nav link
+
+**Decisions:**
+- 14 businesses have no location (city=Unknown, state=USA) — left off map intentionally (online-only)
+- Nominatim geocoding works well for this use case; no API key needed, 1 req/sec rate limit
+- Deployment URL: canonical URL is https://site-patriot-directory1.pages.dev (not the hex-prefix build URL)
+- Bake Across Europe deleted: was on user's source CSV but doesn't fit patriot American business theme
+
+**Current DB state:**
+- 57 businesses total (was 58; Bake Across Europe removed)
+- 44 with lat/lng (show on map)
+- 13 without lat/lng (online-only, no location)
+- 33 with photo_url
+
+**Next Steps:**
+- [ ] Connect a custom domain
+- [ ] Add more businesses from remaining CSV rows (rows 32-79, 92-107, 122+)
+- [ ] SEO: meta titles/descriptions for category and state pages
+- [ ] Submit sitemap to Google
+- [ ] Look into whether "Bake Across Europe" type entries exist in remaining CSV rows to cull
+
+**Gotchas:**
+- Deployment API returns build-specific URL (hex prefix) — canonical is always https://{project}.pages.dev
+- Nominatim requires User-Agent header or requests get blocked
+- State-only businesses (no city) can use state centroid as fallback coordinate
