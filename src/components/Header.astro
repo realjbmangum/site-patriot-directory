@@ -6,6 +6,13 @@ const navLinks = [
 ];
 
 const currentPath = Astro.url.pathname;
+
+function isActive(href: string): boolean {
+  if (href === '/directory') {
+    return currentPath === '/directory' || currentPath.startsWith('/category/');
+  }
+  return currentPath.startsWith(href);
+}
 ---
 
 <header class="bg-white sticky top-0 z-50 shadow-lg border-b border-gray-100">
@@ -26,7 +33,7 @@ const currentPath = Astro.url.pathname;
             href={link.href}
             class:list={[
               'text-sm font-medium transition-colors hover:text-gold',
-              currentPath.startsWith(link.href) ? 'text-gold' : 'text-navy/70',
+              isActive(link.href) ? 'text-gold' : 'text-navy/70',
             ]}
           >
             {link.label}
@@ -58,7 +65,7 @@ const currentPath = Astro.url.pathname;
             href={link.href}
             class:list={[
               'px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-              currentPath.startsWith(link.href)
+              isActive(link.href)
                 ? 'bg-navy/10 text-gold'
                 : 'text-navy/70 hover:bg-navy/10 hover:text-gold',
             ]}
