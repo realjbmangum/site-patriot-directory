@@ -38,7 +38,7 @@ const { lat, lng, businessName } = Astro.props;
 
   const map = new mapboxgl.Map({
     container: 'business-mini-map',
-    style: 'mapbox://styles/mapbox/light-v11',
+    style: 'mapbox://styles/mapbox/outdoors-v12',
     center: [lng, lat],
     zoom: 13,
     interactive: false,

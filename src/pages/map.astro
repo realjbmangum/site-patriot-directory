@@ -100,7 +100,8 @@ const pageDescription = `Interactive map of ${businesses.length}+ patriot busine
         <div id="map" class="absolute inset-0"></div>
         <!-- Style switcher -->
         <div id="map-style-switcher" class="absolute top-2 left-2 z-10 flex rounded-md overflow-hidden shadow border border-gray-200 bg-white text-xs font-semibold">
-          <button data-style="standard" class="style-btn px-3 py-1.5 text-navy bg-navy/10 border-r border-gray-200 hover:bg-gray-50 transition-colors">Map</button>
+          <button data-style="standard" class="style-btn px-3 py-1.5 text-navy bg-navy/10 border-r border-gray-200 hover:bg-gray-50 transition-colors">Terrain</button>
+          <button data-style="tactical" class="style-btn px-3 py-1.5 text-gray-500 border-r border-gray-200 hover:bg-gray-50 transition-colors">Tactical</button>
           <button data-style="satellite" class="style-btn px-3 py-1.5 text-gray-500 border-r border-gray-200 hover:bg-gray-50 transition-colors">Satellite</button>
           <button data-style="3d" class="style-btn px-3 py-1.5 text-gray-500 hover:bg-gray-50 transition-colors">3D</button>
         </div>
@@ -194,7 +195,7 @@ const pageDescription = `Interactive map of ${businesses.length}+ patriot busine
     // =========================================================================
     const map = new mapboxgl.Map({
       container: 'map',
-      style: 'mapbox://styles/mapbox/light-v11',
+      style: 'mapbox://styles/mapbox/outdoors-v12',
       center: [-98.5795, 39.8283], // Center of US
       zoom: 3.5,
       attributionControl: false,
@@ -319,7 +320,8 @@ const pageDescription = `Interactive map of ${businesses.length}+ patriot busine
     // STYLE SWITCHER + 3D TERRAIN
     // =========================================================================
     const mapStyles = {
-      standard: 'mapbox://styles/mapbox/light-v11',
+      standard:  'mapbox://styles/mapbox/outdoors-v12',
+      tactical:  'mapbox://styles/mapbox/dark-v11',
       satellite: 'mapbox://styles/mapbox/satellite-streets-v12',
     };
     let is3D = false;
