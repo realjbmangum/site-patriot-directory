@@ -1,0 +1,275 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const db = Astro.locals.runtime.env.DB;
+const env = Astro.locals.runtime.env;
+
+let success = false;
+let errorMsg = '';
+
+const categories = [
+  { slug: 'restaurants-food',    name: 'Restaurants & Food' },
+  { slug: 'farms-agriculture',   name: 'Farms & Agriculture' },
+  { slug: 'brewing-spirits',     name: 'Brewing & Spirits' },
+  { slug: 'handmade-artisan',    name: 'Handmade & Artisan' },
+  { slug: 'apparel-accessories', name: 'Apparel & Accessories' },
+  { slug: 'firearms-outdoors',   name: 'Firearms & Outdoors' },
+  { slug: 'home-building',       name: 'Home & Building' },
+  { slug: 'faith-family',        name: 'Faith & Family' },
+  { slug: 'health-wellness',     name: 'Health & Wellness' },
+  { slug: 'services-trades',     name: 'Services & Trades' },
+  { slug: 'books-media',         name: 'Books & Media' },
+  { slug: 'pets-animals',        name: 'Pets & Animals' },
+];
+
+// Preserve form values on error
+let formValues: Record<string, string> = {};
+
+if (Astro.request.method === 'POST') {
+  const data = await Astro.request.formData();
+
+  const businessName  = data.get('business_name')?.toString().trim() || '';
+  const contactName   = data.get('contact_name')?.toString().trim() || '';
+  const contactEmail  = data.get('contact_email')?.toString().trim() || '';
+  const website       = data.get('website')?.toString().trim() || '';
+  const twitter       = data.get('twitter_handle')?.toString().trim().replace(/^@/, '') || '';
+  const categorySlug  = data.get('category_slug')?.toString() || '';
+  const city          = data.get('city')?.toString().trim() || '';
+  const state         = data.get('state')?.toString().trim().toUpperCase() || '';
+  const description   = data.get('description')?.toString().trim() || '';
+
+  formValues = { businessName, contactName, contactEmail, website, twitter, categorySlug, city, state, description };
+
+  if (!businessName || !contactEmail) {
+    errorMsg = 'Business name and your email are required.';
+  } else {
+    try {
+      // Save to D1 submissions table
+      await db.prepare(`
+        INSERT INTO submissions
+          (type, business_name, category_slug, city, state, website, twitter_handle, description, contact_name, contact_email, status)
+        VALUES
+          ('business_submit', ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+      `).bind(businessName, categorySlug || null, city || null, state || null, website || null, twitter || null, description || null, contactName || null, contactEmail).run();
+
+      // Send email notification via SendGrid
+      const sgKey = env.SENDGRID_API_KEY;
+      const fromEmail = env.SENDGRID_FROM_EMAIL || 'alerts@scdmvappointments.com';
+
+      if (sgKey) {
+        const body = [
+          `New business submission for Patriot Directory`,
+          ``,
+          `Business: ${businessName}`,
+          `Category: ${categorySlug || 'Not specified'}`,
+          `Location: ${city ? city + ', ' : ''}${state || 'Not specified'}`,
+          `Website: ${website || 'Not provided'}`,
+          `Twitter: ${twitter ? '@' + twitter : 'Not provided'}`,
+          ``,
+          `Description:`,
+          description || 'None provided',
+          ``,
+          `Submitted by: ${contactName || 'Anonymous'} <${contactEmail}>`,
+        ].join('\n');
+
+        await fetch('https://api.sendgrid.com/v3/mail/send', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${sgKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            personalizations: [{ to: [{ email: 'bmangum1@gmail.com' }] }],
+            from: { email: fromEmail, name: 'Patriot Directory' },
+            reply_to: { email: contactEmail, name: contactName || contactEmail },
+            subject: `New Business Submission: ${businessName}`,
+            content: [{ type: 'text/plain', value: body }],
+          }),
+        });
+      }
+
+      success = true;
+    } catch (e) {
+      errorMsg = 'Something went wrong. Please try again.';
+    }
+  }
+}
+---
+
+<BaseLayout
+  title="Submit a Business — Patriot Directory"
+  description="Know an American-owned business that belongs in the Patriot Directory? Submit it here."
+>
+  <section class="bg-navy text-white py-12">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+      <h1 class="font-display text-3xl md:text-4xl font-bold mb-2">Submit a Business</h1>
+      <p class="text-white/70">Know a patriot business that belongs here? Tell us about it.</p>
+    </div>
+  </section>
+
+  <section class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+
+    {success ? (
+      <div class="bg-green-50 border border-green-200 rounded-lg p-8 text-center">
+        <div class="text-4xl mb-4">🇺🇸</div>
+        <h2 class="font-display text-2xl font-bold text-navy mb-2">Submission Received!</h2>
+        <p class="text-gray-600 mb-6">Thanks for helping grow the directory. We'll review it and add it soon.</p>
+        <a href="/directory" class="btn-primary">Browse the Directory</a>
+      </div>
+    ) : (
+      <div class="bg-white rounded-lg shadow-sm border border-gray-100 p-6 md:p-8">
+        {errorMsg && (
+          <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+            {errorMsg}
+          </div>
+        )}
+
+        <form method="POST" class="space-y-6">
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Business Name -->
+            <div class="md:col-span-2">
+              <label for="business_name" class="block text-sm font-medium text-navy mb-1">
+                Business Name <span class="text-crimson">*</span>
+              </label>
+              <input
+                type="text"
+                id="business_name"
+                name="business_name"
+                required
+                value={formValues.businessName || ''}
+                class="w-full rounded-lg border-gray-300 shadow-sm text-sm focus:border-navy focus:ring-navy"
+                placeholder="e.g. Smith's Gun Shop"
+              />
+            </div>
+
+            <!-- Website -->
+            <div>
+              <label for="website" class="block text-sm font-medium text-navy mb-1">Website</label>
+              <input
+                type="url"
+                id="website"
+                name="website"
+                value={formValues.website || ''}
+                class="w-full rounded-lg border-gray-300 shadow-sm text-sm focus:border-navy focus:ring-navy"
+                placeholder="https://example.com"
+              />
+            </div>
+
+            <!-- Twitter/X -->
+            <div>
+              <label for="twitter_handle" class="block text-sm font-medium text-navy mb-1">X / Twitter Handle</label>
+              <div class="relative">
+                <span class="absolute inset-y-0 left-3 flex items-center text-gray-400 text-sm">@</span>
+                <input
+                  type="text"
+                  id="twitter_handle"
+                  name="twitter_handle"
+                  value={formValues.twitter || ''}
+                  class="w-full pl-7 rounded-lg border-gray-300 shadow-sm text-sm focus:border-navy focus:ring-navy"
+                  placeholder="handle"
+                />
+              </div>
+            </div>
+
+            <!-- Category -->
+            <div>
+              <label for="category_slug" class="block text-sm font-medium text-navy mb-1">Category</label>
+              <select
+                id="category_slug"
+                name="category_slug"
+                class="w-full rounded-lg border-gray-300 shadow-sm text-sm focus:border-navy focus:ring-navy"
+              >
+                <option value="">Select a category...</option>
+                {categories.map(cat => (
+                  <option value={cat.slug} selected={formValues.categorySlug === cat.slug}>
+                    {cat.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <!-- City -->
+            <div>
+              <label for="city" class="block text-sm font-medium text-navy mb-1">City</label>
+              <input
+                type="text"
+                id="city"
+                name="city"
+                value={formValues.city || ''}
+                class="w-full rounded-lg border-gray-300 shadow-sm text-sm focus:border-navy focus:ring-navy"
+                placeholder="e.g. Nashville"
+              />
+            </div>
+
+            <!-- State -->
+            <div>
+              <label for="state" class="block text-sm font-medium text-navy mb-1">State</label>
+              <input
+                type="text"
+                id="state"
+                name="state"
+                value={formValues.state || ''}
+                maxlength={2}
+                class="w-full rounded-lg border-gray-300 shadow-sm text-sm focus:border-navy focus:ring-navy"
+                placeholder="e.g. TN"
+              />
+            </div>
+
+            <!-- Description -->
+            <div class="md:col-span-2">
+              <label for="description" class="block text-sm font-medium text-navy mb-1">
+                Why do they belong here?
+              </label>
+              <textarea
+                id="description"
+                name="description"
+                rows={3}
+                class="w-full rounded-lg border-gray-300 shadow-sm text-sm focus:border-navy focus:ring-navy"
+                placeholder="Tell us about the business — what they do, why they're patriot-owned, etc."
+              >{formValues.description || ''}</textarea>
+            </div>
+          </div>
+
+          <div class="border-t border-gray-100 pt-6">
+            <p class="text-sm font-semibold text-navy mb-4">Your Contact Info</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label for="contact_name" class="block text-sm font-medium text-navy mb-1">Your Name</label>
+                <input
+                  type="text"
+                  id="contact_name"
+                  name="contact_name"
+                  value={formValues.contactName || ''}
+                  class="w-full rounded-lg border-gray-300 shadow-sm text-sm focus:border-navy focus:ring-navy"
+                />
+              </div>
+              <div>
+                <label for="contact_email" class="block text-sm font-medium text-navy mb-1">
+                  Your Email <span class="text-crimson">*</span>
+                </label>
+                <input
+                  type="email"
+                  id="contact_email"
+                  name="contact_email"
+                  required
+                  value={formValues.contactEmail || ''}
+                  class="w-full rounded-lg border-gray-300 shadow-sm text-sm focus:border-navy focus:ring-navy"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between pt-2">
+            <p class="text-xs text-gray-400">
+              <span class="text-crimson">*</span> Required fields
+            </p>
+            <button type="submit" class="btn-primary px-8 py-3">
+              Submit Business →
+            </button>
+          </div>
+        </form>
+      </div>
+    )}
+  </section>
+</BaseLayout>
