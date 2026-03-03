@@ -96,6 +96,90 @@
 
 ---
 
+## Session - Mar 3, 2026 (continued)
+
+**Completed:**
+- Built /submit page — business submission form using Web3Forms (access key e820df72)
+- Form includes full patriot qualifying section:
+  - "Why does this business deserve to be listed?" (required textarea)
+  - Ownership checkboxes: American-owned, Veteran-owned, Family-owned, Made in USA, Christian Values, Pro-2A
+  - Submitter type radio: owner vs nominator
+- AJAX submission with inline success/error states (no page reload)
+- Updated index.astro and about.astro mailto links → /submit
+- Added red "Submit a Business" button to header nav (desktop + mobile)
+- Tested — form works and delivers to email
+
+**Files Changed:**
+- src/pages/submit.astro — new Web3Forms submission page
+- src/pages/index.astro — mailto → /submit
+- src/pages/about.astro — mailto → /submit
+- src/components/Header.astro — Submit a Business button added to nav
+- .env.example — added SENDGRID vars (for future reference)
+
+**Decisions:**
+- Web3Forms used instead of Formspree or SendGrid — no domain auth required
+- Ownership checkboxes (american_owned, veteran_owned, family_owned, made_in_usa, christian_values, pro_2a) should eventually become filterable directory features and badge types
+- Pro-2A = Pro-Second Amendment
+
+**Next Steps:**
+- [ ] Add ownership attributes as filterable directory features (filter chips on /directory)
+- [ ] Add new badge types: american-owned, christian-values, pro-2a
+- [ ] Connect a custom domain
+- [ ] Add more businesses from remaining CSV rows
+- [ ] SEO: meta titles/descriptions for category and state pages
+- [ ] Submit sitemap to Google
+- [ ] Run OG image scraper on 10 new businesses
+
+---
+
+## Session - Mar 3, 2026
+
+**Completed:**
+- 3-agent parallel scrape team: scraped 10 new business websites for listing data (name, address, phone, email, twitter, description, category)
+- Imported 10 businesses into D1 in two batches:
+  - Batch 1 (physical addresses): Nighthawk Custom, Faxon Firearms, Henry Repeating Arms, Diamondback Firearms, Hi-Point Firearms, Nourishing Family Farm
+  - Batch 2 (online-only): Winnowing Fan, Red Rose Creative House, Elkhorn Products, Hybrid Human
+- Geocoded 6 physical-address businesses via Nominatim (OpenStreetMap, no API key needed)
+- Updated Diamondback Firearms twitter handle to @DBFirearms via direct D1 UPDATE
+- Fixed nav active state: Browse now highlights on all /category/* routes via isActive()
+- Fixed CategoryCard: links now go to /directory?category=slug instead of /category/[slug] — one unified browse page
+- Map theme: default changed from light-v11 (grayscale) to outdoors-v12 (terrain/patriotic)
+- Map style switcher: added Tactical (dark-v11) option, renamed Map → Terrain
+- Mini maps on business detail pages also updated to outdoors-v12
+- Clarified winnowingfan.com was a different site (Catholic faith apparel, SC) — not Diamondback redirect
+- Discovered wrangler 4.50.0 had D1 auth bug — fixed by using wrangler@latest (4.69.0)
+- Geocoding: Nominatim handles full addresses well; falls back to city/state for rural/industrial addresses
+
+**Files Changed:**
+- data/new-listings-2026-03-02.csv — 6 physical-address businesses
+- data/new-listings-online-2026-03-02.csv — 4 online-only businesses
+- data/geocode-update.sql — lat/lng for 6 businesses
+- src/components/Header.astro — isActive() function, Browse active state covers /category/* routes
+- src/components/CategoryCard.astro — href /category/slug → /directory?category=slug
+- src/pages/map.astro — outdoors-v12 default, Tactical button added, style switcher updated
+- src/components/BusinessMap.astro — outdoors-v12 for mini maps
+
+**Decisions:**
+- Online-only / anonymous businesses use city="Online" state="US" — works with import script, excluded from map
+- Nominatim is sufficient for geocoding — no Mapbox token needed locally
+- Always use wrangler@latest for D1 operations (4.50.0 has auth bug with D1 import API)
+- import-csv.js is CommonJS (require) but package.json has "type": "module" — run as .cjs copy
+- One browse page (/directory) handles all browsing — category cards link via query param not separate route
+
+**Current DB state:**
+- ~67 businesses total (57 from Feb sessions + 10 new)
+- ~50 with lat/lng (show on map)
+- 4 online-only businesses (city=Online, state=US — excluded from map)
+
+**Next Steps:**
+- [ ] Connect a custom domain
+- [ ] Add more businesses (user has more URLs to scrape)
+- [ ] SEO: meta titles/descriptions for category and state pages
+- [ ] Submit sitemap to Google
+- [ ] Run OG image scraper on 10 new businesses for photo_url
+
+---
+
 ## Session - Feb 27, 2026
 
 **Completed:**
